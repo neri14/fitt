@@ -52,6 +52,11 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/fitt/
+    permissions:
+      id-token: write
     if: github.event_name == 'release' && github.event.action == 'published'
     
     steps:
@@ -94,5 +99,3 @@ jobs:
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
