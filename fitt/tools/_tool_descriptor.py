@@ -2,7 +2,6 @@ import argparse
 
 from dataclasses import dataclass
 from typing import Callable
-from typing_extensions import Unpack
 
 @dataclass
 class Tool:
