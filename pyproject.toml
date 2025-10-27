@@ -40,9 +40,6 @@ version = {attr = "fitt.__version__"}
 [project.scripts]
 fitt = "fitt.__main__:main"
 
-[tool.setuptools]
-packages = ["fitt"]
-
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
