@@ -6,7 +6,7 @@ from .tools import tools
 from . import __version__
 
 
-def setup_logger():
+def setup_logger() -> None:
     log_level = logging.INFO
     dbg = os.getenv("DEBUG", "0")
     if dbg >= "1":
@@ -16,7 +16,7 @@ def setup_logger():
     logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="FIT Tools - A collection of tools to work with FIT files."
     )
