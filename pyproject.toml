@@ -30,9 +30,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/neri14/fit-tools"
-Repository = "https://github.com/neri14/fit-tools"
-Issues = "https://github.com/neri14/fit-tools/issues"
+Homepage = "https://github.com/neri14/fitt"
+Repository = "https://github.com/neri14/fitt"
+Issues = "https://github.com/neri14/fitt/issues"
 
 [tool.setuptools.dynamic]
 version = {attr = "fitt.__version__"}
