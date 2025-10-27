@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/neri14/fitt/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/neri14/fitt/actions/workflows/ci.yml)
 [![Coverage Status](https://codecov.io/gh/neri14/fitt/branch/master/graph/badge.svg)](https://codecov.io/gh/neri14/fitt)
+[![PyPI - Version](https://img.shields.io/pypi/v/fitt)](https://pypi.org/project/fitt/)
+
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
 **FIT Tools** - A collection of tools to work with FIT files.
