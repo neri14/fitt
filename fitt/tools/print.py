@@ -9,14 +9,25 @@ from ._tool_descriptor import Tool
 def main(fit_file: str) -> bool:
     logging.info(f"Printing fit file: {fit_file}")
 
-    fields = set()
+    messages: dict[str, dict] = {}
+
     print()
     def mesg_listener(mesg_num, message):
         print("----------")
-        message_name = Profile['types']['mesg_num'].get(str(mesg_num), f"unknown")
-        print(f"Message: {message_name} ({mesg_num})")
+        message_name = Profile['types']['mesg_num'].get(str(mesg_num))
+        print(f"Message: {message_name if message_name is not None else 'unknown'} ({mesg_num})")
         print(message)
-    
+
+        mkey = message_name if message_name is not None else str(mesg_num)
+        if mkey not in messages:
+            messages[mkey] = {
+                'count': 0,
+                'fields': set()
+            }
+        for field in message:
+            messages[mkey]['fields'].add(field)
+        messages[mkey]['count'] += 1
+
     try:
         stream = Stream.from_file(fit_file)
         decoder = Decoder(stream)
@@ -31,9 +42,12 @@ def main(fit_file: str) -> bool:
         logging.error(f"Failed to read fit file: {e}")
         return False
 
-    logging.info(f"Fields in RECORD messages:")
-    for field in fields:
-        logging.info(f" - {field}")
+    print("\n==========\n")
+
+    for message_name in messages:
+        print(f"\"{message_name}\" - {messages[message_name]['count']} messages:")
+        print(messages[message_name]['fields'])
+        print()
     return True
 
 
