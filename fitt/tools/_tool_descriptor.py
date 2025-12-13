@@ -8,7 +8,7 @@ class Tool:
     name: str
     description: str
     add_argparser: Callable[[argparse._SubParsersAction], None]
-    main: Callable[..., int]
+    main: Callable[..., bool]
 
-    def __call__(self, **kwargs) -> int: # type: ignore[no-untyped-def]
+    def __call__(self, **kwargs) -> bool: # type: ignore[no-untyped-def]
         return self.main(**kwargs)

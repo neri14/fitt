@@ -24,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(
         metavar="tool",
         dest="tool",
-        help="Available tools",
+        help="Available tools:",
         required=True
     )
 
@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
+def main() -> bool:
     setup_logger()
 
     args = parse_args()
@@ -50,4 +50,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    success = main()
+    sys.exit(0 if success else 1)

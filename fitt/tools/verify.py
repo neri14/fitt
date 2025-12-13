@@ -1,13 +1,12 @@
 import argparse
 import logging
-import os
 
 from garmin_fit_sdk import Decoder, Stream
 
 from ._tool_descriptor import Tool
 
 
-def main(fit_file: str) -> int:
+def main(fit_file: str) -> bool:
     logging.info(f"Verifying fit file: {fit_file}")
 
     try:
@@ -19,13 +18,13 @@ def main(fit_file: str) -> int:
             logging.error(f"Fit file verification failed with {len(errors)} errors:")
             for error in errors:
                 logging.error(f" - {error}")
-            return 1
+            return False
     except Exception as e:
         logging.error(f"Failed to read fit file: {e}")
-        return 1
+        return False
 
     logging.info("Fit file verification succeeded with no errors.")
-    return 0
+    return True
 
 
 def add_argparser(subparsers: argparse._SubParsersAction) -> None:

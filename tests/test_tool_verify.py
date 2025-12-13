@@ -26,14 +26,14 @@ def invalid_fit_file(test_data_dir):
 
 def test_verification_with_valid_fit_file(sample_fit_file):
     result = verify(sample_fit_file)
-    assert result == 0, "Verification should succeed for a valid FIT file."
+    assert result is True, "Verification should succeed for a valid FIT file."
 
 
 def test_verification_with_invalid_fit_file(invalid_fit_file):
     result = verify(invalid_fit_file)
-    assert result != 0, "Verification should fail for an invalid FIT file."
+    assert result is False, "Verification should fail for an invalid FIT file."
 
 
 def test_main_with_nonexistent_fit_file():
     result = verify("nonexistent.fit")
-    assert result != 0, "Verification should fail for a nonexistent FIT file."
+    assert result is False, "Verification should fail for a nonexistent FIT file."
