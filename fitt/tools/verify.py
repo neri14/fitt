@@ -12,6 +12,11 @@ def main(fit_file: str) -> bool:
     try:
         stream = Stream.from_file(fit_file)
         decoder = Decoder(stream)
+
+        if not decoder.check_integrity():
+            logging.error("Fit file integrity check failed.")
+            return False
+
         _, errors = decoder.read()
 
         if errors:
