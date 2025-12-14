@@ -30,7 +30,7 @@ tag = SimpleNamespace(
 )
 
 
-def gpx_ts(dt: datetime) -> str:
+def gpx_ts(dt: datetime|None) -> str:
     if dt is None:
         return ""
     if dt.tzinfo is None:
