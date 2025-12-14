@@ -14,13 +14,13 @@ namespace_urls = {
     '': "http://www.topografix.com/GPX/1/1",
     'xsi': "http://www.w3.org/2001/XMLSchema-instance",
     'tpx': "http://www.garmin.com/xmlschemas/TrackPointExtension/v2",
-    'adx': "http://www.n3r1.com/xmlschemas/ActivityDataExtensions/v0",
+    'adx': "http://www.n3r1.com/xmlschemas/ActivityDataExtensions/v1",
 }
 
 namespace_schemas = {
     '': "http://www.topografix.com/GPX/1/1/gpx.xsd",
     'tpx': "http://www.garmin.com/xmlschemas/TrackPointExtensionv2.xsd",
-    'adx': "http://www.n3r1.com/xmlschemas/ActivityDataExtensionsv0.xsd",
+    'adx': "http://www.n3r1.com/xmlschemas/ActivityDataExtensionsv1.xsd",
 }
 
 tag = SimpleNamespace(
@@ -110,7 +110,7 @@ def main(fit_file: str, output: str|None = None) -> bool:
     if 'total_work' in reader.metadata:
         ET.SubElement(trk_adx, f"{tag.adx}work").text = str(reader.metadata['total_work'])
     if 'total_calories' in reader.metadata:
-        ET.SubElement(trk_adx, f"{tag.adx}calories").text = str(reader.metadata['total_calories'])
+        ET.SubElement(trk_adx, f"{tag.adx}kcal").text = str(reader.metadata['total_calories'])
 
     if 'total_grit' in reader.metadata:
         ET.SubElement(trk_adx, f"{tag.adx}grit").text = str(reader.metadata['total_grit'])
@@ -193,12 +193,12 @@ def main(fit_file: str, output: str|None = None) -> bool:
             ET.SubElement(trkpt_tpx, f"{tag.tpx}speed").text = str(record['speed'])
 
         # ActivityPointExtension
-        trkpt_adx = ET.SubElement(trkpt_ext, f"{tag.adx}ActivityPointExtension")
+        trkpt_adx = ET.SubElement(trkpt_ext, f"{tag.adx}ActivityTrackPointExtension")
 
         if 'time' in record:
             ET.SubElement(trkpt_adx, f"{tag.adx}time").text = str(record['time'])
         if 'smooth_altitude' in record:
-            ET.SubElement(trkpt_adx, f"{tag.adx}sele").text = str(record['smooth_altitude'])
+            ET.SubElement(trkpt_adx, f"{tag.adx}smoothele").text = str(record['smooth_altitude'])
         if 'distance' in record:
             ET.SubElement(trkpt_adx, f"{tag.adx}dist").text = str(record['distance'])
         if 'calories' in record:
@@ -259,8 +259,6 @@ def main(fit_file: str, output: str|None = None) -> bool:
             ET.SubElement(trkpt_adx, f"{tag.adx}jumpdist").text = str(record['jump_distance'])
         if 'jump_height' in record:
             ET.SubElement(trkpt_adx, f"{tag.adx}jumpheight").text = str(record['jump_height'])
-        if 'jump_rotations' in record:
-            ET.SubElement(trkpt_adx, f"{tag.adx}jumprot").text = str(record['jump_rotations'])
         if 'jump_hang_time' in record:
             ET.SubElement(trkpt_adx, f"{tag.adx}jumptime").text = str(record['jump_hang_time'])
         if 'jump_score' in record:
