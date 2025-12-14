@@ -58,7 +58,7 @@ def read_data(fit_file: str, x_axis: str, y_axis: list[str], y_axis_right: list[
         for y in y_axis:
             factor = conversion_factors.get(y, 1)
             if y not in record:
-                logging.warning(f"Y-axis field '{y}' not found in record at {timestamp}. Appending None.")
+                logging.debug(f"Y-axis field '{y}' not found in record at {timestamp}. Appending None.")
                 ypoints[y].append(None)
             else:
                 ypoints[y].append(record[y] * factor)
@@ -66,7 +66,7 @@ def read_data(fit_file: str, x_axis: str, y_axis: list[str], y_axis_right: list[
         for y in y_axis_right:
             factor = conversion_factors.get(y, 1)
             if y not in record:
-                logging.warning(f"Y-axis right field '{y}' not found in record at {timestamp}. Appending None.")
+                logging.debug(f"Y-axis right field '{y}' not found in record at {timestamp}. Appending None.")
                 ypoints_right[y].append(None)
             else:
                 ypoints_right[y].append(record[y] * factor)
