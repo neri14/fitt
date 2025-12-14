@@ -40,15 +40,15 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> bool:
+def main() -> int:
     setup_logger()
 
     args = parse_args()
     tool_args = {k: v for k, v in vars(args).items() if k != 'tool'}
 
-    return tools[args.tool](**tool_args)
+    success = tools[args.tool](**tool_args)
+    return 0 if success else 1
 
 
 if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+    sys.exit(main())
