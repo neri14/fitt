@@ -200,6 +200,7 @@
       <xsd:minInclusive value="0"/>
       <xsd:maxInclusive value="100"/>
     </xsd:restriction>
+  </xsd:simpleType>
 
   <xsd:complexType name="Extensions_t">
     <xsd:annotation>

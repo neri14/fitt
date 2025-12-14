@@ -270,10 +270,6 @@ def main(fit_file: str, output: str|None = None) -> bool:
     with open(output, "w", encoding="utf-8") as f:
         f.write(pretty)
 
-
-
-    # https://www.topografix.com/gpx/1/1/
-
     return True
 
 
