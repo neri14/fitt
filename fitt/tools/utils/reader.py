@@ -122,10 +122,10 @@ def generate_name(sport: str|None, sub_sport: str|None, sport_profile_name: str|
     if sport is None:
         name = "Unknown"
     else:
-        name = sport.replace('_',' ').capitalize()
+        name = sport.replace('_',' ').title()
 
     if sub_sport is not None and sub_sport != 'generic':
-        name = f"{sub_sport.replace('_',' ').capitalize()} {name}"
+        name = f"{sub_sport.replace('_',' ').title()} {name}"
 
     if sport_profile_name is not None:
         name += f" ({sport_profile_name})"
@@ -162,6 +162,8 @@ class Reader:
                 self._handle_session_message(message)
             elif mesg_num == Profile['mesg_num']['SPORT']: # type: ignore
                 self._handle_sport_message(message)
+            elif mesg_num == Profile['mesg_num']['FILE_ID']: # type: ignore
+                self._handle_file_id_message(message)
             elif mesg_num == Profile['mesg_num']['RECORD']: # type: ignore
                 self._handle_record_message(message)
             elif mesg_num == Profile['mesg_num']['EVENT']: # type: ignore
@@ -328,6 +330,41 @@ class Reader:
             self._metadata['sub_sport'] = message['sub_sport']
 
         self._metadata['activity_name'] = generate_name(self._metadata.get('sport'), self._metadata.get('sub_sport'), self._metadata.get('sport_profile_name'))
+
+
+    def _handle_file_id_message(self, message: dict) -> None:
+        manufacturer = None
+        product = None
+        serial_number = None
+
+        if 'manufacturer' in message:
+            manufacturer = str(message['manufacturer'])
+
+        if 'garmin_product' in message:
+            product = str(message['garmin_product'])
+        elif 'product' in message:
+            product = str(message['product'])
+
+        if 'serial_number' in message:
+            serial_number = str(message['serial_number'])
+
+        device = ""
+        if manufacturer is not None:
+            device += manufacturer
+        if product is not None:
+            if device != "":
+                device += " "
+            device += product
+
+        device = device.replace('_',' ').title()
+
+        if device == "":
+            device = "Unknown Device"
+
+        if serial_number is not None:
+            device += f" (S/N: {serial_number})"
+
+        self._metadata['device'] = device
 
 
     def _handle_record_message(self, message: dict) -> None:
