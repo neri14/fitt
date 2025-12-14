@@ -18,7 +18,9 @@ usage: fitt [-h] [--version] tool ...
 FIT Tools - A collection of tools to work with FIT files.
 
 positional arguments:
-  tool        Available tools
+  tool        Available tools:
+    plot      Plot data from the fit file.
+    print     Print all messages in the fit file.
     verify    Verify the fit file.
 
 options:
@@ -26,6 +28,46 @@ options:
   --version   show program's version number and exit
 ```
 
+
+### Plot tool
+
+```
+$ fitt plot -h
+usage: fitt plot [-h] -x X_AXIS -y Y_AXIS [Y_AXIS ...] [--y-right Y_AXIS_RIGHT [Y_AXIS_RIGHT ...]] [-t {line,scatter}] [-o OUTPUT] fit_file
+
+positional arguments:
+  fit_file              Path to the fit file.
+
+options:
+  -h, --help            show this help message and exit
+  -x X_AXIS, --x-axis X_AXIS
+                        Field to use for the x-axis.
+  -y Y_AXIS [Y_AXIS ...], --y-axis Y_AXIS [Y_AXIS ...]
+                        Field to use for the y-axis.
+  --y-right Y_AXIS_RIGHT [Y_AXIS_RIGHT ...]
+                        Field to use for the y-axis on the right side.
+  -t {line,scatter}, --type {line,scatter}
+                        Plot type: line, scatter. Default is line.
+  -o OUTPUT, --output OUTPUT
+                        Path to the output image file. If not provided, shows the plot interactively.
+```
+
+
+### Print tool
+
+```
+$ fitt print -h
+usage: fitt print [-h] fit_file
+
+positional arguments:
+  fit_file    Path to the fit file.
+
+options:
+  -h, --help  show this help message and exit
+```
+
+
+### Verify tool
 ```
 $ fitt verify -h
 usage: fitt verify [-h] fit_file
