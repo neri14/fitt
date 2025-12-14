@@ -38,7 +38,7 @@ def label(field: str) -> str:
     return f"{field} ({unit})" if unit else field
 
 
-def read_data(fit_file: str, x_axis: str, y_axis: list[str], y_axis_right: list[str] = []) -> tuple[list, dict, dict]:
+def read_data(fit_file: str, x_axis: str, y_axis: list[str], y_axis_right: list[str] = []) -> tuple[str, list, dict, dict]:
     reader = Reader(fit_file)
     if not reader.ok:
         logging.error("Failed to read fit file.")
@@ -71,7 +71,7 @@ def read_data(fit_file: str, x_axis: str, y_axis: list[str], y_axis_right: list[
             else:
                 ypoints_right[y].append(record[y] * factor)
 
-    return xpoints, ypoints, ypoints_right
+    return reader.metadata.get('activity_name', 'Unknown Activity'), xpoints, ypoints, ypoints_right
 
 
 def colors() -> Generator[ColorType, None, None]:
@@ -81,7 +81,7 @@ def colors() -> Generator[ColorType, None, None]:
         yield c
 
 
-def draw_plot(plot_type: str,
+def draw_plot(plot_type: str, plot_type_right: str, activity_name: str,
               x_axis: str, y_axis: list[str], y_axis_right: list[str],
               xpoints: list, ypoints: dict, ypoints_right: dict,
               output: str|None) -> None:
@@ -90,28 +90,27 @@ def draw_plot(plot_type: str,
 
     if plot_type == 'line':
         for y in y_axis:
-            
             ax1.plot(xpoints, ypoints[y], label=label(y), linewidth=LINE_WIDTH, color=next(color))
     elif plot_type == 'scatter':
         for y in y_axis:
             ax1.scatter(xpoints, ypoints[y], label=label(y), s=POINT_SIZE, color=next(color))
 
-    ax1.set_xlabel(x_axis)
-    ax1.set_ylabel(", ".join(y_axis))
-    ax1.set_title(f"Plot of {', '.join(y_axis)} vs {x_axis}" + (f" (right: {', '.join(y_axis_right)})" if y_axis_right else ""))
+    ax1.set_xlabel(label(x_axis))
+    ax1.set_ylabel(", ".join([label(y) for y in y_axis]))
+    ax1.set_title(activity_name)
     ax1.legend(loc='upper left')
 
     ax2 = None
     if y_axis_right:
         ax2 = ax1.twinx()
-        if plot_type == 'line':
+        if plot_type_right == 'line':
             for y in y_axis_right:
                 ax2.plot(xpoints, ypoints_right[y], label=label(y), linewidth=LINE_WIDTH, color=next(color))
-        elif plot_type == 'scatter':
+        elif plot_type_right == 'scatter':
             for y in y_axis_right:
                 ax2.scatter(xpoints, ypoints_right[y], label=label(y), s=POINT_SIZE, color=next(color))
 
-        ax2.set_ylabel(", ".join(y_axis_right))
+        ax2.set_ylabel(", ".join([label(y) for y in y_axis_right]))
         ax2.legend(loc='upper right')
 
     ax1.grid(True)
@@ -122,18 +121,22 @@ def draw_plot(plot_type: str,
         plt.show()
 
 
-def main(fit_file: str, x_axis: str, y_axis: list[str], y_axis_right: list[str] = [], plot_type: str = 'line', output: str|None = None) -> bool:
+def main(fit_file: str,
+         x_axis: str, y_axis: list[str], y_axis_right: list[str] = [],
+         plot_type: str = 'line', plot_type_right: str = 'line',
+         output: str|None = None) -> bool:
     logging.info(f"Plotting fit file: {fit_file}")
 
     logging.debug(f"X-axis: {x_axis}")
     logging.debug(f"Y-axis: {y_axis}")
     logging.debug(f"Y-axis (right): {y_axis_right}")
     logging.debug(f"Plot type: {plot_type}")
+    logging.debug(f"Plot type (right y-axis): {plot_type_right}")
     logging.debug(f"Output: {output}")
 
     try:
-        xpoints, ypoints, ypoints_right = read_data(fit_file, x_axis, y_axis, y_axis_right)
-        draw_plot(plot_type, x_axis, y_axis, y_axis_right, xpoints, ypoints, ypoints_right, output)
+        activity_name, xpoints, ypoints, ypoints_right = read_data(fit_file, x_axis, y_axis, y_axis_right)
+        draw_plot(plot_type, plot_type_right, activity_name, x_axis, y_axis, y_axis_right, xpoints, ypoints, ypoints_right, output)
     except Exception as e:
         logging.error(f"Failed to plot data: {e}")
         return False
@@ -174,6 +177,13 @@ def add_argparser(subparsers: argparse._SubParsersAction) -> None:
         "-t", "--type",
         dest="plot_type",
         help="Plot type: line, scatter. Default is line.",
+        choices=["line", "scatter"],
+        default="line"
+    )
+    parser.add_argument(
+        "--type-right",
+        dest="plot_type_right",
+        help="Plot type for right y-axis: line, scatter. Default is line.",
         choices=["line", "scatter"],
         default="line"
     )

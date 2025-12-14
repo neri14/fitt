@@ -53,14 +53,91 @@ units = {
     'front_gear':                       'teeth',
     'rear_gear_num':                    None,
     'rear_gear':                        'teeth',
-    'active_climb':                     None, #experimental
+    'active_climb':                     None, #experimental - climb number
+    'jump_distance':                    'm',
+    'jump_height':                      'm',
+    'jump_rotations':                   'rotations',
+    'jump_hang_time':                   's',
+    'jump_score':                       None,
 }
+
+meta_units = {
+    'start_time':                       None,
+    'end_time':                         None,
+    'start_position_lat':               '°',
+    'start_position_long':              '°',
+    'end_position_lat':                 '°',
+    'end_position_long':                '°',
+    'minlat':                           '°',
+    'minlon':                           '°',
+    'maxlat':                           '°',
+    'maxlon':                           '°',
+    'total_elapsed_time':               's',
+    'total_timer_time':                 's',
+    'total_distance':                   'm',
+    'total_cycles':                     'cycles',
+    'total_work':                       'J',
+    'avg_speed':                        'm/s',
+    'max_speed':                        'm/s',
+    'training_load_peak':               None,
+    'total_grit':                       None,
+    'avg_flow':                         None,
+    'total_calories':                   'kcal',
+    'avg_power':                        'W',
+    'max_power':                        'W',
+    'total_ascent':                     'm',
+    'total_descent':                    'm',
+    'normalized_power':                 'W',
+    'training_stress_score':            None,
+    'intensity_factor':                 None,
+    'threshold_power':                  'W',
+    'avg_vam':                          'm/s',
+    'avg_respiration_rate':             'bpm',
+    'max_respiration_rate':             'bpm',
+    'min_respiration_rate':             'bpm',
+    'jump_count':                       None,
+    'avg_right_torque_effectiveness':   '%',
+    'avg_left_torque_effectiveness':    '%',
+    'avg_right_pedal_smoothness':       '%',
+    'avg_left_pedal_smoothness':        '%',
+    'avg_heart_rate':                   'bpm',
+    'max_heart_rate':                   'bpm',
+    'avg_cadence':                      'rpm',
+    'max_cadence':                      'rpm',
+    'avg_temperature':                  '°C',
+    'max_temperature':                  '°C',
+    'min_temperature':                  '°C',
+    'total_anaerobic_training_effect':  None,
+    'total_strokes':                    'strokes',
+    'sport_profile_name':               None,
+    'sport':                            None,
+    'sub_sport':                        None,
+    'activity_name':                    None,
+}
+
+
+def generate_name(sport: str|None, sub_sport: str|None, sport_profile_name: str|None) -> str:
+    name = ""
+
+    if sport is None:
+        name = "Unknown"
+    else:
+        name = sport.replace('_',' ').capitalize()
+
+    if sub_sport is not None and sub_sport != 'generic':
+        name = f"{sub_sport.replace('_',' ').capitalize()} {name}"
+
+    if sport_profile_name is not None:
+        name += f" ({sport_profile_name})"
+
+    return name
 
 
 class Reader:
     def __init__(self, fit_file: str):
         self.fit_file: str = fit_file
         self._data: dict[datetime, dict] = {}
+        self._metadata: dict = {}
         self._cache: dict = {}
 
         self.ok: bool = self._load_fit_file()
@@ -74,15 +151,36 @@ class Reader:
             yield timestamp, self._data[timestamp]
 
 
+    @property
+    def metadata(self) -> dict:
+        return self._metadata
+
+
     def _load_fit_file(self) -> bool:
         def mesg_listener(mesg_num: int, message: dict) -> None:
-            if mesg_num == Profile['mesg_num']['RECORD']: # type: ignore
+            if mesg_num == Profile['mesg_num']['SESSION']: # type: ignore
+                self._handle_session_message(message)
+            elif mesg_num == Profile['mesg_num']['SPORT']: # type: ignore
+                self._handle_sport_message(message)
+            elif mesg_num == Profile['mesg_num']['RECORD']: # type: ignore
                 self._handle_record_message(message)
             elif mesg_num == Profile['mesg_num']['EVENT']: # type: ignore
                 self._handle_event_message(message)
             elif mesg_num == Profile['mesg_num']['CLIMB_PRO']: # type: ignore
                 self._handle_climb_message(message)
+            elif mesg_num == Profile['mesg_num']['JUMP']: # type: ignore
+                self._handle_jump_message(message)
 
+            # TBD messages:
+            # - segment_lap
+            # - hrv
+            # - time_in_zone
+            # - lap
+            # - split
+            # - split_summary
+            # - timestamp_correlation
+            # - device_info
+            # - device_aux_battery_info
         try:
             stream = Stream.from_file(self.fit_file)
             decoder = Decoder(stream)
@@ -97,6 +195,139 @@ class Reader:
             logging.error(f"Failed to read fit file: {e}")
             return False
         return True
+
+
+    def _handle_session_message(self, message: dict) -> None:
+        if 'timestamp' in message:
+            self._metadata['end_time'] = message['timestamp']
+        if 'start_time' in message:
+            self._metadata['start_time'] = message['start_time']
+        if 'start_position_lat' in message:
+            self._metadata['start_position_lat'] = message['start_position_lat'] * SEMICIRCLES_FACTOR
+        if 'start_position_long' in message:
+            self._metadata['start_position_long'] = message['start_position_long'] * SEMICIRCLES_FACTOR
+        if 'end_position_lat' in message:
+            self._metadata['end_position_lat'] = message['end_position_lat'] * SEMICIRCLES_FACTOR
+        if 'end_position_long' in message:
+            self._metadata['end_position_long'] = message['end_position_long'] * SEMICIRCLES_FACTOR
+        if 'nec_lat' in message:
+            self._metadata['maxlat'] = message['nec_lat'] * SEMICIRCLES_FACTOR
+        if 'nec_long' in message:
+            self._metadata['maxlon'] = message['nec_long'] * SEMICIRCLES_FACTOR
+        if 'swc_lat' in message:
+            self._metadata['minlat'] = message['swc_lat'] * SEMICIRCLES_FACTOR
+        if 'swc_long' in message:
+            self._metadata['minlon'] = message['swc_long'] * SEMICIRCLES_FACTOR
+        if 'total_elapsed_time' in message:
+            self._metadata['total_elapsed_time'] = message['total_elapsed_time']
+        if 'total_timer_time' in message:
+            self._metadata['total_timer_time'] = message['total_timer_time']
+        if 'total_distance' in message:
+            self._metadata['total_distance'] = message['total_distance']
+        if 'total_cycles' in message:
+            self._metadata['total_cycles'] = message['total_cycles']
+        if 'total_work' in message:
+            self._metadata['total_work'] = message['total_work']
+
+        if 'enhanced_avg_speed' in message:
+            self._metadata['avg_speed'] = message['enhanced_avg_speed']
+        elif 'avg_speed' in message:
+            self._metadata['avg_speed'] = message['avg_speed']
+        if 'enhanced_max_speed' in message:
+            self._metadata['max_speed'] = message['enhanced_max_speed']
+        elif 'max_speed' in message:
+            self._metadata['max_speed'] = message['max_speed']
+
+        if 'training_load_peak' in message:
+            self._metadata['training_load_peak'] = message['training_load_peak']
+        if 'total_grit' in message:
+            self._metadata['total_grit'] = message['total_grit']
+        if 'avg_flow' in message:
+            self._metadata['avg_flow'] = message['avg_flow']
+        if 'total_calories' in message:
+            self._metadata['total_calories'] = message['total_calories']
+        if 'avg_power' in message:
+            self._metadata['avg_power'] = message['avg_power']
+        if 'max_power' in message:
+            self._metadata['max_power'] = message['max_power']
+        if 'total_ascent' in message:
+            self._metadata['total_ascent'] = message['total_ascent']
+        if 'total_descent' in message:
+            self._metadata['total_descent'] = message['total_descent']
+        if 'normalized_power' in message:
+            self._metadata['normalized_power'] = message['normalized_power']
+        if 'training_stress_score' in message:
+            self._metadata['training_stress_score'] = message['training_stress_score']
+        if 'intensity_factor' in message:
+            self._metadata['intensity_factor'] = message['intensity_factor']
+        if 'threshold_power' in message:
+            self._metadata['threshold_power'] = message['threshold_power']
+        if 'avg_vam' in message:
+            self._metadata['avg_vam'] = message['avg_vam']
+
+        if 'enhanced_avg_respiration_rate' in message:
+            self._metadata['avg_respiration_rate'] = message['enhanced_avg_respiration_rate']
+        elif 'avg_respiration_rate' in message:
+            self._metadata['avg_respiration_rate'] = message['avg_respiration_rate']
+        if 'enhanced_max_respiration_rate' in message:
+            self._metadata['max_respiration_rate'] = message['enhanced_max_respiration_rate']
+        elif 'max_respiration_rate' in message:
+            self._metadata['max_respiration_rate'] = message['max_respiration_rate']
+        if 'enhanced_min_respiration_rate' in message:
+            self._metadata['min_respiration_rate'] = message['enhanced_min_respiration_rate']
+        elif 'min_respiration_rate' in message:
+            self._metadata['min_respiration_rate'] = message['min_respiration_rate']
+
+        if 'jump_count' in message:
+            self._metadata['jump_count'] = message['jump_count']
+
+        if 'avg_right_torque_effectiveness' in message:
+            self._metadata['avg_right_torque_effectiveness'] = message['avg_right_torque_effectiveness']
+        if 'avg_left_torque_effectiveness' in message:
+            self._metadata['avg_left_torque_effectiveness'] = message['avg_left_torque_effectiveness']
+        if 'avg_right_pedal_smoothness' in message:
+            self._metadata['avg_right_pedal_smoothness'] = message['avg_right_pedal_smoothness']
+        if 'avg_left_pedal_smoothness' in message:
+            self._metadata['avg_left_pedal_smoothness'] = message['avg_left_pedal_smoothness']
+
+        if 'avg_heart_rate' in message:
+            self._metadata['avg_heart_rate'] = message['avg_heart_rate']
+        if 'max_heart_rate' in message:
+            self._metadata['max_heart_rate'] = message['max_heart_rate']
+        if 'avg_cadence' in message:
+            self._metadata['avg_cadence'] = message['avg_cadence']
+        if 'max_cadence' in message:
+            self._metadata['max_cadence'] = message['max_cadence']
+        if 'avg_temperature' in message:
+            self._metadata['avg_temperature'] = message['avg_temperature']
+        if 'max_temperature' in message:
+            self._metadata['max_temperature'] = message['max_temperature']
+        if 'min_temperature' in message:
+            self._metadata['min_temperature'] = message['min_temperature']
+        if 'total_anaerobic_training_effect' in message:
+            self._metadata['total_anaerobic_training_effect'] = message['total_anaerobic_training_effect']
+        if 'total_strokes' in message:
+            self._metadata['total_strokes'] = message['total_strokes']
+
+        if 'sport_profile_name' in message:
+            self._metadata['sport_profile_name'] = message['sport_profile_name']
+        if 'sport' in message:
+            self._metadata['sport'] = message['sport']
+        if 'sub_sport' in message:
+            self._metadata['sub_sport'] = message['sub_sport']
+
+        self._metadata['activity_name'] = generate_name(self._metadata.get('sport'), self._metadata.get('sub_sport'), self._metadata.get('sport_profile_name'))
+
+
+    def _handle_sport_message(self, message: dict) -> None:
+        if 'name' in message:
+            self._metadata['sport_profile_name'] = message['name']
+        if 'sport' in message:
+            self._metadata['sport'] = message['sport']
+        if 'sub_sport' in message:
+            self._metadata['sub_sport'] = message['sub_sport']
+
+        self._metadata['activity_name'] = generate_name(self._metadata.get('sport'), self._metadata.get('sub_sport'), self._metadata.get('sport_profile_name'))
 
 
     def _handle_record_message(self, message: dict) -> None:
@@ -248,7 +479,33 @@ class Reader:
                 del self._cache['active_climb']
 
 
+    def _handle_jump_message(self, message: dict) -> None:
+        if 'timestamp' not in message:
+            logging.warning("JUMP message without timestamp field.")
+            return
+
+        timestamp = message['timestamp']
+        if timestamp not in self._data:
+            self._data[timestamp] = {}
+
+        data = {}
+
+        if 'distance' in message and isinstance(message['distance'], (int, float)) and not math.isnan(message['distance']):
+            data['jump_distance'] = message['distance']
+        if 'height' in message and isinstance(message['height'], (int, float)) and not math.isnan(message['height']):
+            data['jump_height'] = message['height']
+        if 'rotations' in message and isinstance(message['rotations'], (int, float)) and not math.isnan(message['rotations']):
+            data['jump_rotations'] = message['rotations']
+        if 'hang_time' in message and isinstance(message['hang_time'], (int, float)) and not math.isnan(message['hang_time']):
+            data['jump_hang_time'] = message['hang_time']
+        if 'score' in message and isinstance(message['score'], (int, float)) and not math.isnan(message['score']):
+            data['jump_score'] = message['score']
+
+        self._data[timestamp].update(data)
+
+
     def _generate_calculated_fields(self) -> None:
+        self._calculate_bounds()
         self._calculate_activity_time()
         self._calculate_distance()
         self._calculate_smooth_altitude()
@@ -256,6 +513,28 @@ class Reader:
         self._calculate_power_rolling_averages()
         self._calculate_grade()
         self._calculate_vertical_speed()
+
+
+    def _calculate_bounds(self) -> None:
+        if set(['minlat', 'minlon', 'maxlat', 'maxlon']).issubset(self._metadata.keys()):
+            return
+
+        logging.debug("Calculating bounds")
+
+        lats = []
+        lons = []
+
+        for timestamp,record in self.data:
+            if 'position_lat' in record:
+                lats.append(record['position_lat'])
+            if 'position_long' in record:
+                lons.append(record['position_long'])
+
+        if len(lats) > 0 and len(lons) > 0:
+            self._metadata['minlat'] = min(lats)
+            self._metadata['maxlat'] = max(lats)
+            self._metadata['minlon'] = min(lons)
+            self._metadata['maxlon'] = max(lons)
 
 
     def _calculate_activity_time(self) -> None:
@@ -429,83 +708,3 @@ class Reader:
             yield cur, left + [cur] + right
 
 
-# COVERED:
-
-# "record" - 5414 messages:
-# {'cadence', 137, 138, 144, 'enhanced_speed', 'enhanced_respiration_rate', 'position_long', 'timestamp', 'left_pedal_smoothness', 'left_torque_effectiveness', 'distance', 'right_torque_effectiveness', 'heart_rate', 'fractional_cadence', 'flow', 'power', 'accumulated_power', 'right_pedal_smoothness', 'enhanced_altitude', 90, 'position_lat', 'temperature', 107, 'grit'}
-
-# "event" - 270 messages:
-# {'rear_gear', 'gear_change_data', 'rear_gear_num', 'event_group', 'event_type', 'timer_trigger', 'data', 'front_gear_num', 'front_gear', 'event', 'timestamp'}
-
-
-# "climb_pro" - 3 messages:
-# {'position_lat', 'climb_pro_event', 'climb_number', 'current_dist', 'climb_category', 'position_long', 'timestamp'}
-
-
-# ---
-
-
-# FOR RECORDS:
-
-
-# ---
-
-
-# FOR SUMMARY (maybe):
-
-# "file_id" - 1 messages:
-# {'type', 'garmin_product', 'time_created', 'product', 'manufacturer', 'serial_number'}
-
-# "activity" - 1 messages:
-# {'type', 'num_sessions', 'total_timer_time', 'event_type', 'local_timestamp', 'event', 'timestamp'}
-
-# "session" - 1 messages:
-# {'normalized_power', 'threshold_power', 'avg_cadence', 'swc_long', 'total_elapsed_time', 'swc_lat', 138, 'avg_right_torque_effectiveness', 'training_load_peak', 'event', 'end_position_long', 'sport', 'total_ascent', 'enhanced_avg_speed', 'enhanced_max_respiration_rate', 'sport_profile_name', 'avg_temperature', 'timestamp', 'total_calories', 'avg_vam', 'trigger', 'total_anaerobic_training_effect', 'max_temperature', 'avg_right_pedal_smoothness', 'max_power', 'avg_heart_rate', 178, 'total_training_effect', 'start_time', 'total_grit', 'jump_count', 'sub_sport', 'intensity_factor', 'avg_fractional_cadence', 'num_laps', 'nec_lat', 184, 'avg_flow', 188, 'total_strokes', 'max_cadence', 'enhanced_max_speed', 'total_timer_time', 'total_cycles', 196, 'event_type', 205, 'end_position_lat', 206, 207, 81, 'enhanced_avg_respiration_rate', 'total_distance', 'first_lap_index', 219, 'total_work', 'start_position_lat', 'enhanced_min_respiration_rate', 'training_stress_score', 'min_temperature', 106, 'start_position_long', 108, 'max_fractional_cadence', 'message_index', 'avg_power', 'max_heart_rate', 'total_descent', 'nec_long'}
-
-# "device_settings" - 1 messages:
-# {'time_zone_offset', 3, 10, 11, 13, 14, 15, 144, 22, 26, 'activity_tracker_enabled', 29, 159, 33, 35, 38, 'active_time_zone', 41, 170, 173, 'lactate_threshold_autodetect_enabled', 48, 52, 53, 54, 'autosync_min_steps', 63, 'date_mode', 75, 77, 81, 85, 218, 91, 219, 'utc_offset', 97, 98, 'backlight_mode', 106, 109, 110, 111, 'time_mode', 121, 'time_offset', 'autosync_min_time'}
-
-# "user_profile" - 1 messages:
-# {'dist_setting', 'friendly_name', 'wake_time', 'height', 'weight', 'gender', 'hr_setting', 'temperature_setting', 'height_setting', 24, 'default_max_heart_rate', 36, 40, 'weight_setting', 42, 'age', 'default_max_biking_heart_rate', 'power_setting', 44, 45, 'position_setting', 'resting_heart_rate', 57, 60, 62, 'activity_class', 65, 66, 67, 'speed_setting', 69, 'sleep_time', 'language', 'elev_setting'}
-
-# "sport" - 1 messages:
-# {5, 6, 9, 10, 12, 15, 17, 'sport', 18, 'sub_sport', 22, 23, 24, 'name'}
-
-# "zones_target" - 1 messages:
-# {'functional_threshold_power', 9, 10, 11, 12, 13, 'hr_calc_type', 'max_heart_rate', 'threshold_heart_rate', 'pwr_calc_type', 254}
-
-# "training_file" - 1 messages:
-# {'type', 'garmin_product', 'time_created', 'product', 'manufacturer', 'serial_number', 'timestamp'}
-
-
-# ---
-
-
-# TBD:
-
-# "segment_lap" - 1 messages:
-# {'max_speed', 'normalized_power', 'avg_cadence', 'swc_long', 'total_elapsed_time', 'swc_lat', 'avg_right_torque_effectiveness', 'end_position_long', 'sport', 'total_ascent', 'status', 'timestamp', 'total_calories', 'avg_right_pedal_smoothness', 'avg_speed', 'max_power', 'avg_heart_rate', 'avg_fractional_cadence', 'start_time', 'total_grit', 'nec_lat', 'total_strokes', 'avg_flow', 'max_cadence', 'total_timer_time', 'total_cycles', 'uuid', 'end_position_lat', 'manufacturer', 88, 'total_distance', 'total_work', 'start_position_lat', 'max_fractional_cadence', 'start_position_long', 'message_index', 'avg_power', 'max_heart_rate', 'total_descent', 'nec_long', 'name'}
-
-# "hrv" - 5377 messages:
-# {'time'}
-
-# "time_in_zone" - 74 messages:
-# {'reference_mesg', 'functional_threshold_power', 'hr_zone_high_boundary', 'reference_index', 'resting_heart_rate', 18, 'hr_calc_type', 'time_in_power_zone', 'time_in_hr_zone', 'max_heart_rate', 'threshold_heart_rate', 'pwr_calc_type', 'power_zone_high_boundary', 'timestamp'}
-
-# "lap" - 1 messages:
-# {'normalized_power', 'avg_cadence', 'total_elapsed_time', 'avg_right_torque_effectiveness', 'event', 'end_position_long', 145, 'sport', 'total_ascent', 'enhanced_avg_speed', 'enhanced_max_respiration_rate', 27, 28, 29, 30, 'timestamp', 'total_calories', 'avg_vam', 155, 'avg_temperature', 'max_temperature', 163, 'avg_right_pedal_smoothness', 'max_power', 'avg_heart_rate', 'avg_fractional_cadence', 'start_time', 'total_grit', 'jump_count', 'sub_sport', 'total_strokes', 'avg_flow', 'max_cadence', 'enhanced_max_speed', 'total_timer_time', 'total_cycles', 'event_type', 'end_position_lat', 'enhanced_avg_respiration_rate', 'total_distance', 'total_work', 'start_position_lat', 97, 'min_temperature', 'max_fractional_cadence', 'start_position_long', 'message_index', 'avg_power', 'max_heart_rate', 'lap_trigger', 'total_descent'}
-
-# "split" - 72 messages:
-# {'max_speed', 132, 133, 7, 'total_elapsed_time', 135, 136, 11, 12, 15, 16, 17, 18, 19, 20, 'end_position_long', 'total_ascent', 29, 30, 'total_calories', 32, 33, 34, 40, 41, 'start_elevation', 'avg_speed', 42, 'start_time', 54, 56, 'end_time', 58, 67, 'total_timer_time', 'end_position_lat', 'avg_vert_speed', 79, 88, 89, 'total_distance', 90, 92, 91, 'start_position_lat', 99, 101, 102, 103, 104, 105, 106, 'start_position_long', 107, 108, 109, 'message_index', 117, 118, 'total_descent', 124, 253, 'split_type'}
-
-# "split_summary" - 3 messages:
-# {'max_speed', 14, 15, 17, 19, 'total_ascent', 25, 26, 27, 'total_calories', 39, 41, 'avg_speed', 43, 'avg_heart_rate', 52, 53, 60, 64, 'num_splits', 'total_timer_time', 'avg_vert_speed', 79, 85, 86, 88, 'total_distance', 'message_index', 'max_heart_rate', 253, 'total_descent', 'split_type'}
-
-# "timestamp_correlation" - 1 messages:
-# {'system_timestamp', 'local_timestamp', 'timestamp'}
-
-# "device_info" - 14 messages:
-# {'ant_network', 'cum_operating_time', 'ant_device_type', 9, 13, 'battery_status', 15, 16, 'device_type', 'battery_voltage', 24, 'serial_number', 'device_index', 29, 30, 'timestamp', 'local_device_type', 31, 'software_version', 'product', 'antplus_device_type', 'hardware_version', 'garmin_product', 'manufacturer', 'source_type', 'battery_level'}
-
-# "device_aux_battery_info" - 4 messages:
-# {'battery_identifier', 'device_index', 'battery_status', 'timestamp'}
