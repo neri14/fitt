@@ -44,9 +44,9 @@ def read_data(fit_file: str, x_axis: str, y_axis: list[str], y_axis_right: list[
         logging.error("Failed to read fit file.")
         raise RuntimeError("Failed to read fit file.")
 
-    xpoints = []
-    ypoints = {y: [] for y in y_axis}
-    ypoints_right = {y: [] for y in y_axis_right}
+    xpoints: list = []
+    ypoints: dict[str, list] = {y: [] for y in y_axis}
+    ypoints_right: dict[str, list] = {y: [] for y in y_axis_right}
 
     for timestamp,record in sorted(reader.data):
         if x_axis not in record:

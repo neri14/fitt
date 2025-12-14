@@ -68,8 +68,8 @@ class Reader:
 
 
     def _load_fit_file(self) -> bool:
-        def mesg_listener(mesg_num, message):
-            if mesg_num == Profile['mesg_num']['RECORD']:
+        def mesg_listener(mesg_num: int, message: dict) -> None:
+            if mesg_num == Profile['mesg_num']['RECORD']: # type: ignore
                 if 'timestamp' not in message:
                     logging.warning("RECORD message without timestamp field.")
                     return
@@ -305,11 +305,12 @@ class Reader:
 
 
     def _sliding_window(self, window_size: float, key: str) -> Generator[tuple[dict, list[dict]], None, None]:
-        def in_window(record, target):
+        def in_window(record: dict, target: float) -> bool:
             value = record.get(key, None)
             if value is None:
                 return False
-            return abs(value - target) <= window_size / 2.0
+            delta: float = abs(value - target)
+            return delta <= (window_size / 2.0)
 
         seq = [record for _,record in self.data]
 

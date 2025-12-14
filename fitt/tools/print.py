@@ -12,9 +12,9 @@ def main(fit_file: str) -> bool:
     messages: dict[str, dict] = {}
 
     print()
-    def mesg_listener(mesg_num, message):
+    def mesg_listener(mesg_num: int, message: dict) -> None:
         print("----------")
-        message_name = Profile['types']['mesg_num'].get(str(mesg_num))
+        message_name = Profile['types']['mesg_num'].get(str(mesg_num)) # type: ignore
         print(f"Message: {message_name if message_name is not None else 'unknown'} ({mesg_num})")
         print(message)
 
