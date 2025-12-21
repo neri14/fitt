@@ -9,6 +9,9 @@
 **FIT Tools** - A collection of tools to work with FIT files.
 
 
+**NOTE: The project is deprecated in favor of [GPST](https://github.com/neri14/gpst)**
+
+
 ## Usage
 
 ```
